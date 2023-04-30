@@ -1,0 +1,51 @@
+name: Deploy
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Install doctl
+        uses: digitalocean/action-doctl@v2
+        with:
+          token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+
+      - name: Authenticate Docker with registry
+        run: doctl registry login
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Build and push
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          push: true
+          tags: registry.digitalocean.com/<registry-name>/<image-name>:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Create and use production server Docker context
+        uses: arwynfr/actions-docker-context@v2
+        with:
+          docker_host: 'ssh://<user>@<address:port>'
+          context_name: 'production'
+          ssh_cert: ${{ secrets.SSH_CERT }}
+          ssh_key: ${{ secrets.SSH_KEY }}
+          use_context: true
+
+      - name: Pull
+        run: docker-compose pull
+
+      - name: Up
+        run: docker-compose up -d
+
+      - name: Remove old images
+        run: docker image prune -a -f
