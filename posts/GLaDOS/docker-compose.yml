@@ -1,0 +1,22 @@
+services:
+  piper:
+    image: lscr.io/linuxserver/piper:1.4.0
+    container_name: piper
+    environment:
+      - PIPER_VOICE=en_us-glados-high
+    volumes:
+      - ./voices.json:/lsiopy/lib/python3.10/site-packages/wyoming_piper/voices.json:ro
+      - ./voices.json:/config/voices.json:ro
+      - ./en_us-glados-high:/config
+    ports:
+      - 10200:10200
+    restart: unless-stopped
+
+  faster-whisper:
+    image: lscr.io/linuxserver/faster-whisper:2.0.0
+    container_name: faster-whisper
+    environment:
+      - WHISPER_MODEL=tiny-int8
+    ports:
+      - 10300:10300
+    restart: unless-stopped
